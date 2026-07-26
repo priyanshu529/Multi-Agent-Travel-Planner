@@ -1,6 +1,3 @@
-"""Builds and compiles the LangGraph state graph from the individual
-agent nodes."""
-
 from langgraph.graph import StateGraph, START, END
 
 from model import TravelState
