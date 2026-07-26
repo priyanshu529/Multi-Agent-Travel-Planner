@@ -18,6 +18,7 @@ serpapi
 pydantic
 FastMCP
 langchain-mcp-adapters
+langchain-google-genai
 typing
 asyncio
 streamlit
