@@ -20,6 +20,6 @@ FastMCP
 langchain-mcp-adapters
 langchain-google-genai
 typing
-serpapi
+search
 asyncio
 streamlit
