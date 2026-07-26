@@ -1,7 +1,7 @@
-"""Single place to configure/instantiate the LLM used across all agents."""
 
+import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
-GEMINI_API_KEY=ST.SECRETS["GEMINI_API_KEY"]
+GEMINI_API_KEY=st.secrets["GEMINI_API_KEY"]
 
 
 llm = ChatGoogleGenerativeAI(
