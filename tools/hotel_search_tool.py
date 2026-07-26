@@ -40,7 +40,7 @@ def search_hotels(
         params["hotel_class"] = hotel_class
 
     result= GoogleSearch(params)
-    results = result.as_dict()
+    results = result.get_dict()
     # pprint(results)
 
     hotels = []
