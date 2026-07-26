@@ -13,7 +13,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 
 st.set_page_config(
-    page_title="AI Travel Booking System",
+    page_title="Multi Agent Travel Planner",
     page_icon="✈️",
     layout="wide"
 )
@@ -231,8 +231,8 @@ st.markdown("""
          alt="airplane above clouds"/>
     <div class="hero-content">
         <div class="hero-badge">✦ Multi-Agent AI System</div>
-        <div class="hero-title">✈️ AI Travel Booking System</div>
-        <div class="hero-sub">Specialized agents work together — extracting your trip details, then searching flights, hotels, weather, and building your itinerary, with an automatic QA pass before delivery.</div>
+        <div class="hero-title">✈️ Multi Agent Travel Planner</div>
+        <div class="hero-sub">A crew of specialized AI agents plans your trip end to end — one extracts your trip details, others independently search flights, hotels and weather, an itinerary agent stitches it together, and a QA agent reviews the plan before it reaches you.</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -298,6 +298,33 @@ user_query = st.text_area(
 MAX_ITERATION = 3
 
 generate = st.button("🚀  Generate My Travel Plan", use_container_width=True)
+
+
+# ── Friendly names for each graph node, shown live as the pipeline runs ───────
+# Add/rename keys here to match whatever your LangGraph node names actually are
+# (check the node names you passed to `graph.add_node(...)` in main.py).
+AGENT_LABELS = {
+    "extraction_agent": "🔎 Calling extraction agent — reading your trip details",
+    "extract_agent": "🔎 Calling extraction agent — reading your trip details",
+    "parser_agent": "🔎 Calling extraction agent — reading your trip details",
+    "flight_agent": "🛫 Calling flight agent — searching flights",
+    "hotel_agent": "🏨 Calling hotel agent — searching hotels",
+    "weather_agent": "⛅ Calling weather agent — checking the forecast",
+    "itinerary_agent": "🗺️ Calling itinerary agent — building your day-by-day plan",
+    "evaluation_agent": "🧐 Calling evaluation agent — reviewing the draft plan",
+    "final_agent": "✅ Calling final agent — finalizing your travel plan",
+}
+
+
+def agent_label(node_name: str) -> str:
+    """Friendly 'Calling X agent' label for a graph node, with a sane fallback
+    for any node not explicitly listed in AGENT_LABELS."""
+    if node_name in AGENT_LABELS:
+        return AGENT_LABELS[node_name]
+    pretty = node_name.replace("_", " ").replace("-", " ").strip()
+    if not pretty.lower().endswith("agent"):
+        pretty = f"{pretty} agent"
+    return f"🤖 Calling {pretty}"
 
 
 def build_pdf(user_query: str, final_response: str, thread_id: str) -> bytes:
@@ -408,25 +435,35 @@ if generate:
             "llm_calls": 0,
         }
 
-        with st.spinner("🤖 Planning your trip..."):
-            try:
-                for chunk in app.stream(
-                    initial_state,
-                    config=config,
-                    stream_mode="updates",
-                ):
-                    for node_name, state_update in chunk.items():
-                        if state_update is None:
-                            continue
+        # Live status widget — updates its label per-node as the graph streams,
+        # and keeps a running, expandable log of every agent that's been called.
+        status = st.status("🤖 Starting the multi-agent pipeline...", expanded=True)
 
-                        if node_name == "final_agent":
-                            collected["final_response"] = state_update.get("final_result", "")
+        try:
+            for chunk in app.stream(
+                initial_state,
+                config=config,
+                stream_mode="updates",
+            ):
+                for node_name, state_update in chunk.items():
+                    if state_update is None:
+                        continue
 
-                        if "llm_calls" in state_update:
-                            collected["llm_calls"] += state_update["llm_calls"]
-            except Exception as e:
-                st.error(f"The travel planning pipeline failed: {e}")
-                st.stop()
+                    label = agent_label(node_name)
+                    status.update(label=label)
+                    status.write(label)
+
+                    if node_name == "final_agent":
+                        collected["final_response"] = state_update.get("final_result", "")
+
+                    if "llm_calls" in state_update:
+                        collected["llm_calls"] += state_update["llm_calls"]
+
+            status.update(label="✅ Travel plan ready!", state="complete", expanded=False)
+        except Exception as e:
+            status.update(label="❌ Pipeline failed", state="error", expanded=True)
+            st.error(f"The travel planning pipeline failed: {e}")
+            st.stop()
 
         # ── Final plan ────────────────────────────────────────────────────────
         st.markdown("---")
