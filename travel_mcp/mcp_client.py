@@ -15,10 +15,11 @@ import streamlit as st
 SERPAPI_KEY = st.secrets["SERPAPI_API_KEY"]
 
 client = MultiServerMCPClient(
-        "travelpayouts-custom": {
+        {"travelpayouts-custom": {
             "transport": "streamable_http",
             "url": "https://serpapi-mcp-server-8u7m.onrender.com/mcp"
         }
+    }
 )
 
 
