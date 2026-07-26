@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pprint import pprint
 load_dotenv()
 
-SERPAPI_KEY = os.getenv("HOTEL_API_KEY")
+SERPAPI_KEY = st.secrets("HOTEL_API_KEY")
 
 
 def search_hotels(
