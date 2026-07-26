@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 from pprint import pprint
 load_dotenv()
-
-SERPAPI_KEY = st.secrets("HOTEL_API_KEY")
+import streamlit as st
+SERPAPI_KEY = st.secrets["HOTEL_API_KEY"]
 
 
 def search_hotels(
