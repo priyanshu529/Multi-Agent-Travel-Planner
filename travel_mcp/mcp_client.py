@@ -10,21 +10,19 @@ def get_loop_factory():
         return asyncio.ProactorEventLoop
     return None
 load_dotenv()
+import streamlit as st
 
-SERPAPI_KEY=os.getenv("SERPAPI_KEY")
+SERPAPI_KEY = st.secrets["SERPAPI_API_KEY"]
 
-client=MultiServerMCPClient(
-    {
-          
-         "travelpayouts-custom": {
-            "command": "python",
-            "args": [r"C:\\Users\\Priyanshu2006\\Desktop\\travel agent\\travel_mcp\\mcp_server.py"],
-            "transport": "stdio"
+client = MultiServerMCPClient(
+        "travelpayouts-custom": {
+            "transport": "streamable_http",
+            # Replace with your new self-hosted URL (Render/Railway/Fly.io), e.g.:
+            # "url": "https://your-app-name.onrender.com/mcp"
+            "url": "https://serpapi-mcp-server-8u7m.onrender.com/mcp"
         }
-                }
+    }
 )
-
-
 
 
 flight_tools={}
