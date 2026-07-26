@@ -1,7 +1,7 @@
 
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
-GEMINI_API_KEY=st.secrets["GEMINI_API_KEY"]
+GOOGLE_API_KEY=st.secrets["GOOGLE_API_KEY"]
 
 
 llm = ChatGoogleGenerativeAI(
