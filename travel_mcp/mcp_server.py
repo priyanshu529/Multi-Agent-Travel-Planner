@@ -1,3 +1,5 @@
+# disclaimer:this is a local mcp server but the one i am currently using is deployed on render.
+
 import os
 import requests
 from mcp.server.fastmcp import FastMCP
