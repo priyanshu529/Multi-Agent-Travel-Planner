@@ -1,4 +1,4 @@
-from serpapi import search
+from serpapi import GoogleSearch
 import os
 from dotenv import load_dotenv
 from pprint import pprint
@@ -39,7 +39,7 @@ def search_hotels(
     if hotel_class is not None:
         params["hotel_class"] = hotel_class
 
-    result= search(params)
+    result= GoogleSearch(params)
     results = result.as_dict()
     # pprint(results)
 
