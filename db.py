@@ -8,7 +8,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from dotenv import load_dotenv
 import streamlit as st
 load_dotenv()
-DATABASE_URL = st.secrets("DATABASE_URL")
+DATABASE_URL = st.secrets["DATABASE_URL"]
 
 print("connecting")
 _conn = psycopg.connect(
