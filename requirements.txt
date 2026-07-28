@@ -22,4 +22,4 @@ fastmcp
 langchain-mcp-adapters
 langchain-google-genai
 
-streamlit
+streamlit==1.60.0
