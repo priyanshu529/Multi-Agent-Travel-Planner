@@ -30,7 +30,7 @@ def get_future_forecast(city_name, start_date, end_date):
                 "end_date": max_date
             }
         response = requests.get("https://api.open-meteo.com/v1/forecast", params=params)
-        return response.json()
+        return f" weather data: {response.json()}"
         
 
     params = {
