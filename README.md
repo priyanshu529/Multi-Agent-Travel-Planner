@@ -20,12 +20,12 @@ This is a **single-purpose planning pipeline**, not a chat app — every query r
                │    └───────────────┘  │
 ┌────────────┐ │    ┌───────────────┐  │   ┌──────────────────┐   ┌──────────────┐
 │ User query │─┼───▶│  Hotel Agent  │──┼──▶│ Itinerary Agent   │──▶│ Final Agent  │◀─┐
-└────────────┘ │    └───────────────┘  │   └──────────────────┘   └──────┬───────┘     │
-      via        │    ┌───────────────┐  │                                │             │
-  query_agent    └───▶│ Weather Agent │──┘                               ▼             │
+└────────────┘ │    └───────────────┘  │   └──────────────────┘   └──────┬───────┘  │
+      via       │    ┌───────────────┐  │                                  │          │
+  query_agent    └───▶│ Weather Agent │──┘                                  ▼          │
                        └───────────────┘                          ┌───────────────────┐│
-                                                                  │ Evaluation Agent  │┘
-                                                                  └─────────┬─────────┘
+                                                                    │ Evaluation Agent  │┘
+                                                                    └─────────┬─────────┘
                                                                               │
                                                                     approved ▼
                                                                       Travel output
@@ -89,7 +89,7 @@ State is defined in `model.py` (`TravelState`) and persisted via a **Postgres-ba
 
 ### Installation
 
-``bash
+```bash
 git clone https://github.com/priyanshu529/Multi-Agent-Travel-Planner.git
 cd Multi-Agent-Travel-Planner
 python -m venv venv
@@ -97,7 +97,7 @@ source venv/bin/activate   # on Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Configuration — `.streamlit/secrets.toml
+### Configuration — `.streamlit/secrets.toml`
 
 The app reads all credentials via `st.secrets`. Create `.streamlit/secrets.toml` in the project root:
 
@@ -168,10 +168,11 @@ Multi-Agent-Travel-Planner/
 ├── requirements.txt
 └── .streamlit/
     └── secrets.toml                 # Not committed — see Configuration above
+```
 
 
 
+## 👤 Author
 
-
-<img width="1442" height="242" alt="WhatsApp Image 2026-07-29 at 10 16 57 AM" src="https://github.com/user-attachments/assets/f325eef4-c41f-4cf7-bc3c-b4b26b105d78" />
-
+Created and designed by **Priyanshu**
+🔗 [LinkedIn](https://www.linkedin.com/in/priyanshu-shishodiya-71a067333/)
