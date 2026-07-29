@@ -14,21 +14,30 @@ This is a **single-purpose planning pipeline**, not a chat app — every query r
 
 ## 🏗️ Agent Workflow
 
+```mermaid
+flowchart LR
+    A([User query]) --> B[Query Extraction Agent]
+    B --> C[Flight Agent]
+    B --> D[Hotel Agent]
+    B --> E[Weather Agent]
+    C --> F[Itinerary Agent]
+    D --> F
+    E --> F
+    F --> G[Final Agent]
+    G --> H[Evaluation Agent]
+    H -- revise --> G
+    H -- approved --> I([Travel output])
 ```
-                    ┌───────────────┐
-               ┌───▶│ Flight Agent  │──┐
-               │    └───────────────┘  │
-┌────────────┐ │    ┌───────────────┐  │   ┌──────────────────┐   ┌──────────────┐
-│ User query │─┼───▶│  Hotel Agent  │──┼──▶│ Itinerary Agent   │──▶│ Final Agent  │◀─┐
-└────────────┘ │    └───────────────┘  │   └──────────────────┘   └──────┬───────┘  │
-      via       │    ┌───────────────┐  │                                  │          │
-  query_agent    └───▶│ Weather Agent │──┘                                  ▼          │
-                       └───────────────┘                          ┌───────────────────┐│
-                                                                    │ Evaluation Agent  │┘
-                                                                    └─────────┬─────────┘
-                                                                              │
-                                                                    approved ▼
-                                                                      Travel output
+
+*(GitHub renders this Mermaid block automatically. If viewing elsewhere, here's the same flow as plain text:)*
+
+```
+User query
+   → Query Extraction Agent
+       → Flight Agent   ─┐
+       → Hotel Agent     ─┼─→ Itinerary Agent → Final Agent ⇄ Evaluation Agent
+       → Weather Agent  ─┘        (revise loop until approved)
+                                              → Travel output
 ```
 
 **Nodes (LangGraph `StateGraph`, see `graph.py`):**
@@ -169,6 +178,8 @@ Multi-Agent-Travel-Planner/
 └── .streamlit/
     └── secrets.toml                 # Not committed — see Configuration above
 ```
+
+---
 
 
 
