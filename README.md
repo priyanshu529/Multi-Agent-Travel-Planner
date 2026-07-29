@@ -168,3 +168,10 @@ Multi-Agent-Travel-Planner/
 ├── requirements.txt
 └── .streamlit/
     └── secrets.toml                 # Not committed — see Configuration above
+
+
+
+
+
+<img width="1442" height="242" alt="WhatsApp Image 2026-07-29 at 10 16 57 AM" src="https://github.com/user-attachments/assets/f325eef4-c41f-4cf7-bc3c-b4b26b105d78" />
+
