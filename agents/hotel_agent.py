@@ -28,7 +28,7 @@ def hotel_agent(state: TravelState):
         check_out=state["return_date"],
         adults=passengers,
         currency=state.get("currency", "INR"),
-        max_price=max_price
+        max_price=max_price,
         min_rating=4.0,          # or state.get("min_rating")
         max_results=5,
     )
