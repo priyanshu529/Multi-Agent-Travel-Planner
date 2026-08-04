@@ -170,6 +170,38 @@ def save_trip(user_email: str, thread_id: str, user_query: str, final_result: st
     update_trip_result(thread_id, final_result)
 
 
+def update_trip_status(thread_id: str, status: str, final_result: str = None):
+    """
+    Move a trip to a terminal status that ISN'T a normal successful
+    completion -- e.g. 'rejected' (input guardrail blocked it) or 'error'
+    (pipeline raised). Without this, those rows stay stuck at 'pending'
+    forever, which the UI treats as still-in-progress: not clickable and
+    not deletable.
+    """
+    def _do(conn):
+        with conn.cursor() as cur:
+            if final_result is not None:
+                cur.execute(
+                    """
+                    UPDATE trip_history
+                    SET status = %s, final_result = %s
+                    WHERE thread_id = %s
+                    """,
+                    (status, final_result, thread_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    UPDATE trip_history
+                    SET status = %s
+                    WHERE thread_id = %s
+                    """,
+                    (status, thread_id),
+                )
+
+    _run(_do)
+
+
 def delete_trip(thread_id: str, user_email: str):
     """
     Delete a single trip, scoped to the owning user_email so one user can
