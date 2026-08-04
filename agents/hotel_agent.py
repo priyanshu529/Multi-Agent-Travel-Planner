@@ -21,14 +21,14 @@ def hotel_agent(state: TravelState):
     # NOTE: preserved from original — if budget is falsy, total_budget stays
     # None and int(total_budget) below will raise. Left as-is per original
     # behavior; consider defaulting total_budget when splitting further.
-
+    max_price = int(total_budget) if total_budget else None
     hotel_results = search_hotels(
         destination=state["arrival_city_name"],
         check_in=state["arrival_date"],
         check_out=state["return_date"],
         adults=passengers,
         currency=state.get("currency", "INR"),
-        max_price=int(total_budget),
+        max_price=max_price
         min_rating=4.0,          # or state.get("min_rating")
         max_results=5,
     )
