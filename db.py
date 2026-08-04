@@ -34,23 +34,50 @@ def get_conn():
     container woke up from sleep with a stale socket).
     """
     global _conn
-    if _conn.closed:
+    if _conn is None or _conn.closed:
         _conn = _connect()
     return _conn
 
 
-def _run(fn, *args, **kwargs):
+import time
+
+
+def _run(fn, *args, retries: int = 4, delay: float = 1.5, **kwargs):
     """
-    Run a DB operation, retrying once with a fresh connection if we hit
-    an OperationalError (dead/stale connection).
+    Run a DB operation, retrying with a fresh connection if we hit an
+    OperationalError. Uses increasing delay between attempts because a
+    sleeping/free-tier database can take several seconds to wake up --
+    an instant retry alone isn't enough for that case.
     """
-    try:
-        return fn(get_conn(), *args, **kwargs)
-    except psycopg.OperationalError as e:
-        print(f"DB OPERATIONAL ERROR, reconnecting: {e}")
-        global _conn
-        _conn = _connect()
-        return fn(_conn, *args, **kwargs)
+    global _conn
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            return fn(get_conn(), *args, **kwargs)
+        except psycopg.OperationalError as e:
+            last_err = e
+            print(f"DB OPERATIONAL ERROR (attempt {attempt}/{retries}): {e}")
+            try:
+                _conn.close()
+            except Exception:
+                pass
+            _conn = None
+            if attempt < retries:
+                time.sleep(delay * attempt)  # 1.5s, 3s, 4.5s...
+                try:
+                    _conn = _connect()
+                except psycopg.OperationalError as e2:
+                    last_err = e2
+                    print(f"RECONNECT FAILED (attempt {attempt}/{retries}): {e2}")
+                    _conn = None
+    # All retries exhausted -- reconnect one last time so future calls
+    # in this process aren't left with _conn as None, then raise.
+    if _conn is None:
+        try:
+            _conn = _connect()
+        except psycopg.OperationalError:
+            pass
+    raise last_err
 
 
 # ── Trip history ─────────────────────────────────────────────────────────
