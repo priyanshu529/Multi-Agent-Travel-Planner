@@ -5,7 +5,7 @@ import streamlit as st
 from datetime import datetime
 from langchain_core.messages import HumanMessage
 from main import app
-from db import create_trip, update_trip_result, get_trip_history
+from db import create_trip, update_trip_result, get_trip_history, delete_trip
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -245,6 +245,18 @@ section[data-testid="stSidebar"] button[kind="secondary"]:first-of-type {
     border-color: var(--c-red) !important;
 }
 
+/* Sidebar delete (trash) buttons — small, muted, red on hover */
+section[data-testid="stSidebar"] div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
+    background: transparent !important;
+    border: 1px solid var(--c-border) !important;
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.9rem !important;
+}
+section[data-testid="stSidebar"] div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button:hover {
+    border-color: var(--c-red) !important;
+    background: rgba(239,68,68,0.12) !important;
+}
+
 /* ── Section headers ── */
 .sec-head {
     display: flex;
@@ -403,10 +415,6 @@ button[kind="header"] {
 
 
 # ── Auth gate (Google OAuth via Streamlit native auth) ─────────────────────
-# NOTE: everything for the login card is rendered as ONE self-contained block
-# (icon/title/sub + button) with no split/unclosed wrapper divs — that split
-# was what left an empty ~80vh box above the button, forcing a scroll to see
-# "Continue with Google". This version needs no scrolling on normal screens.
 if not st.user.is_logged_in:
     st.markdown("""
         <div class="auth-card">
@@ -458,8 +466,9 @@ with st.sidebar:
         st.caption("No saved trips yet — generate one and it will appear here.")
     else:
         for trip in history:
+            tid = trip["thread_id"]
             query = trip.get("user_query", "Untitled trip")
-            preview = query[:42] + ("…" if len(query) > 42 else "")
+            preview = query[:38] + ("…" if len(query) > 38 else "")
             status = trip.get("status", "done")
             is_pending = status == "pending"
 
@@ -468,14 +477,42 @@ with st.sidebar:
             icon = "⏳" if is_pending else "✈️"
             label = f"{icon} {preview}" + (f"\n{date_str}" if date_str else "")
 
-            if st.button(
-                label,
-                key=f"hist_{trip['thread_id']}",
-                use_container_width=True,
-                disabled=is_pending,
-            ):
-                st.session_state.selected_trip = trip
-                st.rerun()
+            row_l, row_r = st.columns([5, 1])
+            with row_l:
+                if st.button(
+                    label,
+                    key=f"hist_{tid}",
+                    use_container_width=True,
+                    disabled=is_pending,
+                ):
+                    st.session_state.selected_trip = trip
+                    st.rerun()
+            with row_r:
+                if st.button("🗑️", key=f"del_{tid}", help="Delete this trip", disabled=is_pending):
+                    st.session_state[f"confirm_delete_{tid}"] = True
+                    st.rerun()
+
+            # Inline confirm step — avoids one stray click nuking a trip.
+            if st.session_state.get(f"confirm_delete_{tid}"):
+                st.caption(f"Delete “{preview}” permanently?")
+                cc1, cc2 = st.columns(2)
+                with cc1:
+                    if st.button("Yes, delete", key=f"confirm_yes_{tid}", use_container_width=True):
+                        try:
+                            delete_trip(tid, user_email)
+                        except Exception as e:
+                            st.warning(f"Couldn't delete: {e}")
+                        st.session_state.pop(f"confirm_delete_{tid}", None)
+                        if (
+                            st.session_state.get("selected_trip")
+                            and st.session_state.selected_trip.get("thread_id") == tid
+                        ):
+                            st.session_state.selected_trip = None
+                        st.rerun()
+                with cc2:
+                    if st.button("Cancel", key=f"confirm_no_{tid}", use_container_width=True):
+                        st.session_state.pop(f"confirm_delete_{tid}", None)
+                        st.rerun()
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
@@ -525,18 +562,27 @@ QUICK_PROMPTS = {
     "🇮🇩 Bali, 10 days": "Plan a 10-day backpacking trip to Bali for 1 person on a moderate budget, including flights, budget-friendly stays, and an itinerary covering beaches, temples, and local food spots.",
 }
 
-if "trip_query" not in st.session_state:
-    st.session_state.trip_query = ""
+# NOTE on the query box: instead of a fixed key "trip_query", we use a
+# versioned key (query_input_key). Streamlit does not allow mutating
+# st.session_state for a widget's key AFTER that widget has already been
+# instantiated in the same script run — which is exactly what we need to do
+# when "Generate" is clicked (the text_area renders *before* the Generate
+# button in the layout). Bumping the version number remounts a brand-new,
+# empty text_area on the next run instead, which sidesteps that restriction.
+if "query_input_key" not in st.session_state:
+    st.session_state.query_input_key = 0
+
+_query_key = f"trip_query_{st.session_state.query_input_key}"
 
 qcols = st.columns(len(QUICK_PROMPTS))
 for qc, (label, full_prompt) in zip(qcols, QUICK_PROMPTS.items()):
     with qc:
         if st.button(label, key=f"q_{label}", use_container_width=True):
-            st.session_state.trip_query = full_prompt
+            st.session_state[_query_key] = full_prompt
 
 user_query = st.text_area(
     "",
-    key="trip_query",
+    key=_query_key,
     placeholder="e.g. Plan a complete 7-day Japan trip including flights, hotels and sightseeing for 2 people, with a total budget of ₹2,00,000.",
     height=100,
     label_visibility="collapsed",
@@ -557,20 +603,24 @@ if selected_trip:
         unsafe_allow_html=True,
     )
     st.caption(f"Query: {selected_trip['user_query']}")
-    st.markdown(selected_trip.get("final_result", ""))
 
-    saved_pdf = build_pdf(
-        selected_trip["user_query"],
-        selected_trip.get("final_result", ""),
-        selected_trip["thread_id"],
-    )
-    st.download_button(
-        "⬇️ Download Plan (PDF)",
-        data=saved_pdf,
-        file_name=f"travel_plan_{selected_trip['thread_id']}.pdf",
-        mime="application/pdf",
-        key=f"pdf_{selected_trip['thread_id']}",
-    )
+    if selected_trip.get("status") == "generating":
+        st.info("🤖 Generating your travel plan — this usually takes a minute...")
+    else:
+        st.markdown(selected_trip.get("final_result", ""))
+
+        saved_pdf = build_pdf(
+            selected_trip["user_query"],
+            selected_trip.get("final_result", ""),
+            selected_trip["thread_id"],
+        )
+        st.download_button(
+            "⬇️ Download Plan (PDF)",
+            data=saved_pdf,
+            file_name=f"travel_plan_{selected_trip['thread_id']}.pdf",
+            mime="application/pdf",
+            key=f"pdf_{selected_trip['thread_id']}",
+        )
 
 
 # ── Phase 1: user clicks Generate ────────────────────────────────────────────
@@ -588,6 +638,22 @@ if generate:
             "thread_id": thread_id,
             "user_query": user_query,
         }
+
+        # Instantly swap the view to a "generating" placeholder for the NEW
+        # trip so the old trip's plan doesn't linger on screen looking like
+        # nothing happened. The pipeline itself runs a few lines down and
+        # will overwrite this with the finished plan + auto-rerun.
+        st.session_state.selected_trip = {
+            "thread_id": thread_id,
+            "user_query": user_query,
+            "final_result": "",
+            "created_at": datetime.now(),
+            "status": "generating",
+        }
+
+        # Remount the text box empty for the next query.
+        st.session_state.query_input_key += 1
+
         st.rerun()
 
 
@@ -648,7 +714,7 @@ if pending:
                         collected["rejection_reason"] = state_update.get(
                         "rejection_reason", "This request was rejected by the input guardrail."
                     )
-                    
+
                     if node_name == "final_agent":
                         collected["final_response"] = state_update.get("final_result", "")
 
@@ -656,17 +722,22 @@ if pending:
                         collected["llm_calls"] += state_update["llm_calls"]
         except Exception as e:
             st.error("The travel planning pipeline failed.")
-            st.exception(e)          # renders full traceback in the app
-    # or, if you want it as copyable text:
-    # st.code(traceback.format_exc())
+            st.exception(e)
             del st.session_state.pending_generation
             st.stop()
 
     if collected["rejected"]:
         st.warning(f"🚫 {collected['rejection_reason']}")
         del st.session_state.pending_generation
+        # Don't leave the sidebar/main view stuck on a "generating" trip
+        # that will never resolve.
+        if (
+            st.session_state.get("selected_trip")
+            and st.session_state.selected_trip.get("thread_id") == thread_id
+        ):
+            st.session_state.selected_trip = None
         st.stop()
-    
+
     final_response = collected["final_response"] or "No travel plan was generated. Please try again."
 
     try:
