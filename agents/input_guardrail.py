@@ -50,12 +50,14 @@ def input_guardrail(state:TravelState):
     
     hits = regex_scan(state["user_query"])
     if hits:
-        state["input_rejected"] = True
-        state["rejection_reason"] = (
-            f"Your message appears to contain sensitive information ({', '.join(hits)}). "
-            "Please remove it and try again."
-        )
-        return state
+        return {
+            "input_rejected": True,
+            "rejection_reason": (
+                f"Your message appears to contain sensitive information ({', '.join(hits)}). "
+                "Please remove it and try again."
+            ),
+            "messages": []
+        }
 
     prompt="""You are a safety and relevance checker for a travel planning assistant.
 
