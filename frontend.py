@@ -5,7 +5,7 @@ import streamlit as st
 from datetime import datetime
 from langchain_core.messages import HumanMessage
 from main import app
-from db import create_trip, update_trip_result, get_trip_history, delete_trip
+from db import create_trip, update_trip_result, get_trip_history, delete_trip, update_trip_status
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -474,7 +474,11 @@ with st.sidebar:
 
             created_at = trip.get("created_at")
             date_str = created_at.strftime("%b %d, %I:%M %p") if created_at else ""
-            icon = "⏳" if is_pending else "✈️"
+            icon = {
+                "pending": "⏳",
+                "rejected": "🚫",
+                "error": "⚠️",
+            }.get(status, "✈️")
             label = f"{icon} {preview}" + (f"\n{date_str}" if date_str else "")
 
             row_l, row_r = st.columns([5, 1])
@@ -604,8 +608,13 @@ if selected_trip:
     )
     st.caption(f"Query: {selected_trip['user_query']}")
 
-    if selected_trip.get("status") == "generating":
+    _status = selected_trip.get("status")
+    if _status == "generating":
         st.info("🤖 Generating your travel plan — this usually takes a minute...")
+    elif _status == "rejected":
+        st.warning(f"🚫 This request was rejected: {selected_trip.get('final_result', 'No reason given.')}")
+    elif _status == "error":
+        st.error(f"⚠️ This generation failed: {selected_trip.get('final_result', 'Unknown error.')}")
     else:
         st.markdown(selected_trip.get("final_result", ""))
 
@@ -723,19 +732,36 @@ if pending:
         except Exception as e:
             st.error("The travel planning pipeline failed.")
             st.exception(e)
+            try:
+                update_trip_status(thread_id, "error", str(e))
+            except Exception as db_e:
+                st.warning(f"Also couldn't record the failure: {db_e}")
             del st.session_state.pending_generation
+            # Keep the placeholder visible but flip it to the error state
+            # instead of leaving it stuck on "generating" forever.
+            if (
+                st.session_state.get("selected_trip")
+                and st.session_state.selected_trip.get("thread_id") == thread_id
+            ):
+                st.session_state.selected_trip["status"] = "error"
+                st.session_state.selected_trip["final_result"] = str(e)
             st.stop()
 
     if collected["rejected"]:
         st.warning(f"🚫 {collected['rejection_reason']}")
+        try:
+            update_trip_status(thread_id, "rejected", collected["rejection_reason"])
+        except Exception as db_e:
+            st.warning(f"Also couldn't record the rejection: {db_e}")
         del st.session_state.pending_generation
-        # Don't leave the sidebar/main view stuck on a "generating" trip
-        # that will never resolve.
+        # Flip the placeholder to "rejected" rather than clearing it, so the
+        # row is visibly resolved (and now deletable) instead of vanishing.
         if (
             st.session_state.get("selected_trip")
             and st.session_state.selected_trip.get("thread_id") == thread_id
         ):
-            st.session_state.selected_trip = None
+            st.session_state.selected_trip["status"] = "rejected"
+            st.session_state.selected_trip["final_result"] = collected["rejection_reason"]
         st.stop()
 
     final_response = collected["final_response"] or "No travel plan was generated. Please try again."
