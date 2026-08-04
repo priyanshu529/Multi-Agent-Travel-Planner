@@ -599,10 +599,11 @@ if pending:
     config = {"configurable": {"thread_id": thread_id}}
 
     collected = {
-        "final_response": "",
-        "llm_calls": 0,
-    }
-
+    "final_response": "",
+    "llm_calls": 0,
+    "rejected": False,
+    "rejection_reason": "",
+}
     initial_state = {
         "messages": [HumanMessage(content=pending_query)],
         "user_query": pending_query,
