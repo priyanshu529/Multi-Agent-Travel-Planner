@@ -642,6 +642,12 @@ if pending:
                     if state_update is None:
                         continue
 
+                    if node_name == "input_guardrail" and state_update.get("input_rejected"):
+                        collected["rejected"] = True
+                        collected["rejection_reason"] = state_update.get(
+                        "rejection_reason", "This request was rejected by the input guardrail."
+                    )
+                    
                     if node_name == "final_agent":
                         collected["final_response"] = state_update.get("final_result", "")
 
@@ -652,6 +658,11 @@ if pending:
             del st.session_state.pending_generation
             st.stop()
 
+    if collected["rejected"]:
+        st.warning(f"🚫 {collected['rejection_reason']}")
+        del st.session_state.pending_generation
+        st.stop()
+    
     final_response = collected["final_response"] or "No travel plan was generated. Please try again."
 
     try:
