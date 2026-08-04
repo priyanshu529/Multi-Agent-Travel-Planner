@@ -12,6 +12,11 @@ class TravelState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     user_query: str
 
+
+    input_rejected:bool
+    rejection_reason: Optional[str]
+
+
     departure_city_name: Optional[str]
     departure_city_iata: Optional[str]
     arrival_city_name: Optional[str]
