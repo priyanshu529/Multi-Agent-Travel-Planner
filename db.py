@@ -170,6 +170,24 @@ def save_trip(user_email: str, thread_id: str, user_query: str, final_result: st
     update_trip_result(thread_id, final_result)
 
 
+def delete_trip(thread_id: str, user_email: str):
+    """
+    Delete a single trip, scoped to the owning user_email so one user can
+    never delete another user's row even if a thread_id were guessed.
+    """
+    def _do(conn):
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM trip_history
+                WHERE thread_id = %s AND user_email = %s
+                """,
+                (thread_id, user_email),
+            )
+
+    _run(_do)
+
+
 def get_trip_history(user_email: str, limit: int = 20):
     if not user_email:
         print("HISTORY ERROR: user_email is empty")
