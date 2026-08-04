@@ -492,13 +492,15 @@ with st.sidebar:
                     st.session_state.selected_trip = trip
                     st.rerun()
             with row_r:
-                if st.button("🗑️", key=f"del_{tid}", help="Delete this trip", disabled=is_pending):
+                if st.button("🗑️", key=f"del_{tid}", help="Delete this trip"):
                     st.session_state[f"confirm_delete_{tid}"] = True
                     st.rerun()
 
             # Inline confirm step — avoids one stray click nuking a trip.
             if st.session_state.get(f"confirm_delete_{tid}"):
                 st.caption(f"Delete “{preview}” permanently?")
+                if is_pending:
+                    st.caption("⚠️ This one may still be generating — deleting is safe either way.")
                 cc1, cc2 = st.columns(2)
                 with cc1:
                     if st.button("Yes, delete", key=f"confirm_yes_{tid}", use_container_width=True):
@@ -506,13 +508,14 @@ with st.sidebar:
                             delete_trip(tid, user_email)
                         except Exception as e:
                             st.warning(f"Couldn't delete: {e}")
-                        st.session_state.pop(f"confirm_delete_{tid}", None)
-                        if (
-                            st.session_state.get("selected_trip")
-                            and st.session_state.selected_trip.get("thread_id") == tid
-                        ):
-                            st.session_state.selected_trip = None
-                        st.rerun()
+                        else:
+                            st.session_state.pop(f"confirm_delete_{tid}", None)
+                            if (
+                                st.session_state.get("selected_trip")
+                                and st.session_state.selected_trip.get("thread_id") == tid
+                            ):
+                                st.session_state.selected_trip = None
+                            st.rerun()
                 with cc2:
                     if st.button("Cancel", key=f"confirm_no_{tid}", use_container_width=True):
                         st.session_state.pop(f"confirm_delete_{tid}", None)
