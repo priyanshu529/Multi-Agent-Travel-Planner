@@ -655,7 +655,10 @@ if pending:
                     if "llm_calls" in state_update:
                         collected["llm_calls"] += state_update["llm_calls"]
         except Exception as e:
-            st.error(f"The travel planning pipeline failed: {e}")
+            st.error("The travel planning pipeline failed.")
+            st.exception(e)          # renders full traceback in the app
+    # or, if you want it as copyable text:
+    # st.code(traceback.format_exc())
             del st.session_state.pending_generation
             st.stop()
 
