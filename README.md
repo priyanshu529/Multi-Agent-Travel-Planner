@@ -16,18 +16,18 @@ This is a **single-purpose planning pipeline**, not a chat app — every query r
 
 ```mermaid
 flowchart LR
-    A([User query]) --> AA[Input Guardrail Agent]
-    AA --> B[Query Extraction Agent]
-    B --> C[Flight Agent]
-    B --> D[Hotel Agent]
-    B --> E[Weather Agent]
-    C --> F[Itinerary Agent]
-    D --> F
-    E --> F
-    F --> G[Final Agent]
-    G --> H[Evaluation Agent]
-    H -- revise --> G
-    H -- approved --> I([Travel output])
+    A([User query]) --> B[Input Guardrail Agent]
+    B --> C[Query Extraction Agent]
+    C --> D[Flight Agent]
+    C --> E[Hotel Agent]
+    C --> F[Weather Agent]
+    D --> G[Itinerary Agent]
+    E --> G
+    F --> G
+    G --> H[Final Agent]
+    H --> I[Evaluation Agent]
+    I -- revise --> H
+    I -- approved --> J([Travel output])
 ```
 
 *(GitHub renders this Mermaid block automatically. If viewing elsewhere, here's the same flow as plain text:)*
