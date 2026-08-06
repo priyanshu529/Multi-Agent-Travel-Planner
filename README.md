@@ -16,7 +16,8 @@ This is a **single-purpose planning pipeline**, not a chat app — every query r
 
 ```mermaid
 flowchart LR
-    A([User query]) --> B[Query Extraction Agent]
+    A([User query]) --> AA[Input Guardrail Agent]
+    AA --> B[Query Extraction Agent]
     B --> C[Flight Agent]
     B --> D[Hotel Agent]
     B --> E[Weather Agent]
